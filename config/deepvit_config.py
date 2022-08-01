@@ -259,8 +259,8 @@ def get_dataset(train=True):
     return torchvision.datasets.ImageFolder(data_path, transform=input_transform)
 
 
-def get_policy():
-    return get_policy_base({Residual})
+def get_policy(use_nonrecursive, bucket_size):
+    return get_policy_base(use_nonrecursive, bucket_size, {Residual})
 
 
 def fsdp_checkpointing(model):

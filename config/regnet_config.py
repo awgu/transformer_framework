@@ -92,8 +92,8 @@ def get_dataset():
     return GeneratedDataset()
 
 
-def get_policy():
-    return get_policy_base({RegNetYLayer})
+def get_policy(use_nonrecursive, bucket_size):
+    return get_policy_base(use_nonrecursive, bucket_size, {RegNetYLayer})
 
 
 def fsdp_checkpointing(model):

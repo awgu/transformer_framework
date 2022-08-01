@@ -213,8 +213,8 @@ def get_dataset():
     return GeneratedDataset()
 
 
-def get_policy():
-    return get_policy_base({T5Block})
+def get_policy(use_nonrecursive, bucket_size):
+    return get_policy_base(use_nonrecursive, bucket_size, {T5Block})
 
 
 def fsdp_checkpointing(model):

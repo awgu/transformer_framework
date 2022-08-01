@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# outputs
+*.out
+*.txt
+
 # profile traces
 fsdp/
 

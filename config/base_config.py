@@ -52,7 +52,7 @@ class base_config:
 
     # sharding policy
     sharding_strategy: ShardingStrategy = ShardingStrategy.FULL_SHARD
-    print_sharding_plan: bool = False
+    print_sharding_plan: bool = True
 
     run_profiler: bool = False
     profile_folder: str = "fsdp/profile_tracing"
@@ -83,21 +83,17 @@ class base_config:
     nccl_debug_handler: bool = True
     distributed_debug: bool = True
 
-    # use_non_recursive_wrapping: bool = True
-    # backward_prefetch = None
-
     use_non_recursive_wrapping: bool = False
-    backward_prefetch = None  # BackwardPrefetch.BACKWARD_PRE
+    backward_prefetch = BackwardPrefetch.BACKWARD_PRE
 
 
-def get_policy_base(blocks):
+def get_policy_base(use_nonrecursive, bucket_size, blocks):
     cfg = base_config()
-    recursive_policy = functools.partial(
-        transformer_auto_wrap_policy,
-        transformer_layer_cls=blocks,
-    )
-    if not cfg.use_non_recursive_wrapping:
-        return recursive_policy
+    if not use_nonrecursive:
+        return functools.partial(
+            transformer_auto_wrap_policy,
+            transformer_layer_cls=blocks,
+        )
     else:
         # The ParamExecOrderPolicy that is in development
         from torch.distributed.fsdp.wrap import (
@@ -108,7 +104,7 @@ def get_policy_base(blocks):
 
         return ParamExecOrderPolicy(
             handle_init_mode=HandleInitMode.MODULE_LEVEL,
-            bucket_size=int(17000000 * 5 + 1),
+            bucket_size=bucket_size,
             module_level_group_policy=always_wrap_policy,
         )
 

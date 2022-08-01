@@ -79,7 +79,7 @@ def setup_tasks(rank, world_size, cfg):
 
 
 # ------ main code loop -----------------
-def fsdp_main():
+def fsdp_main(wrap_policy, batch_size_training):
     """main process,  within each rank process"""
 
     cfg = config.train_config()  # loads from defaults
@@ -110,10 +110,8 @@ def fsdp_main():
         memmax = None
 
     # ====   use new transformer wrapper
-
-    my_auto_wrap_policy = config.get_policy()
     if rank == 0:
-        print(f"policy is {my_auto_wrap_policy}")
+        print(f"policy is {wrap_policy}")
     dataset = config.get_dataset()
     train_sampler = DistributedSampler(
         dataset, rank=dist.get_rank(), num_replicas=dist.get_world_size(), shuffle=True
@@ -169,10 +167,13 @@ def fsdp_main():
     
 
     prefetch_policy = cfg.backward_prefetch
+    from torch.distributed.fsdp.wrap import ParamExecOrderPolicy
+    if isinstance(wrap_policy, ParamExecOrderPolicy):
+        prefetch_policy = None
     if rank == 0:
         print(f"backward prefetch set to {prefetch_policy}")
         print(f"sharding set to {cfg.sharding_strategy}")
-        print(f"--> Batch Size = {cfg.batch_size_training}")
+        print(f"--> Batch Size = {batch_size_training}")
 
     # model weights to BF16?
     if cfg.model_weights_bf16:
@@ -184,7 +185,7 @@ def fsdp_main():
     # ----- main FSDP init -----------
     model = FSDP(
         model,
-        auto_wrap_policy=my_auto_wrap_policy,
+        auto_wrap_policy=wrap_policy,
         mixed_precision=mp_policy,
         backward_prefetch=prefetch_policy,
         sharding_strategy=cfg.sharding_strategy,
@@ -219,7 +220,7 @@ def fsdp_main():
     # data loader -------------
     data_loader = torch.utils.data.DataLoader(
         dataset,
-        batch_size=cfg.batch_size_training,
+        batch_size=batch_size_training,
         num_workers=cfg.num_workers_dataloader,
         pin_memory=False,
         sampler=train_sampler,
@@ -390,6 +391,21 @@ def parse_args():
         choices=["deepvit", "t5", "regnet"],
         help="choose model to run, available: `deepvit`, `t5`, `regnet` (default: deepvit)",
     )
+    parser.add_argument(
+        "--use-nonrecursive",
+        action="store_true",
+        help="whether to use non-recursive",
+    )
+    parser.add_argument(
+        "--bucket-size",
+        type=int,
+        default=1,
+    )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=15,
+    )
     args = parser.parse_args()
     return args
 
@@ -404,4 +420,5 @@ if __name__ == "__main__":
     elif args.model == "regnet":
         import config.regnet_config as config
 
-    fsdp_main()
+    wrap_policy = config.get_policy(args.use_nonrecursive, args.bucket_size)
+    fsdp_main(wrap_policy, args.batch_size)
