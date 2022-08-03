@@ -1,18 +1,20 @@
 import time
-import tqdm
-import torch
 from dataclasses import dataclass
+
+import datasets_grammar as dg
+import torch
+import tqdm
 
 from torch.distributed.fsdp import StateDictType
 from torch.utils.data import Dataset
 from transformers import (
-    AutoTokenizer,
     AutoModelForSeq2SeqLM,
-    T5ForConditionalGeneration,
+    AutoTokenizer,
     T5Config,
+    T5ForConditionalGeneration,
 )
 from transformers.models.t5.modeling_t5 import T5Block
-import datasets_grammar as dg
+
 from .base_config import base_config, fsdp_checkpointing_base, get_policy_base
 
 
@@ -20,7 +22,7 @@ from .base_config import base_config, fsdp_checkpointing_base, get_policy_base
 class train_config(base_config):
 
     # model
-    model_name = "t5-base"
+    model_name = "t5-11b"
     # available models
     # t5-small / base / large  - 1.0 pretrained
     # or

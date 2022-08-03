@@ -15,7 +15,7 @@ class train_config(base_config):
 
     # model
     # model_name = "facebook/regnet-y-040" # 20M
-    model_name = "3B"
+    model_name = "10B"
     # 3B
     # 7B
     # 10B
