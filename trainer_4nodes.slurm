@@ -2,8 +2,8 @@
 
 #SBATCH --job-name=transformer-trainer
 #SBATCH --partition=train
-#SBATCH --ntasks=2
-#SBATCH --nodes=2
+#SBATCH --ntasks=4
+#SBATCH --nodes=4
 #SBATCH --gpus-per-task=8
 #SBATCH --cpus-per-task=96
 #SBATCH --exclude=a100-st-p4d24xlarge-6,a100-st-p4d24xlarge-7,a100-st-p4d24xlarge-28,a100-st-p4d24xlarge-48,a100-st-p4d24xlarge-16,a100-st-p4d24xlarge-58,a100-st-p4d24xlarge-56,a100-st-p4d24xlarge-5,a100-st-p4d24xlarge-8,a100-st-p4d24xlarge-57
@@ -41,5 +41,5 @@ export NCCL_SOCKET_IFNAME="eth0,en,eth,em,bond"
 # dcgmi profile --pause
 # srun torchrun --nnodes 2 --nproc_per_node 8 --rdzv_id 101 --rdzv_backend c10d --rdzv_endpoint "$head_node_ip:29500" ./main_training.py --model deepvit --batch-size 105 --use-nonrecursive --bucket-size 900000000
 
-srun torchrun --nnodes 2 --nproc_per_node 8 --rdzv_id 101 --rdzv_backend c10d --rdzv_endpoint "$head_node_ip:29500" ./main_training.py --model regnet --batch-size 48
+srun torchrun --nnodes 4 --nproc_per_node 8 --rdzv_id 101 --rdzv_backend c10d --rdzv_endpoint "$head_node_ip:29500" ./main_training.py --model regnet --batch-size 72
 # dcgmi profile --resume

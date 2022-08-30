@@ -1,18 +1,16 @@
 import functools
 from dataclasses import dataclass
+
 import policies
+import torch
 
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
+    apply_activation_checkpointing,
     checkpoint_wrapper,
     CheckpointImpl,
-    apply_activation_checkpointing,
 )
-from torch.distributed.fsdp import (
-    ShardingStrategy,
-    BackwardPrefetch,
-)
+from torch.distributed.fsdp import BackwardPrefetch, ShardingStrategy
 from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
-import torch
 
 
 @dataclass
@@ -57,9 +55,8 @@ class base_config:
     run_profiler: bool = False
     profile_folder: str = "fsdp/profile_tracing"
 
-    # disable forward_prefetch since it currently doesn't work with activation
-    # checkpointing for several cases
-    forward_prefetch = False
+    backward_prefetch = BackwardPrefetch.BACKWARD_PRE
+    limit_all_gathers = True
 
     # log
     log_every: int = 1
@@ -83,9 +80,6 @@ class base_config:
     nccl_debug_handler: bool = True
     distributed_debug: bool = True
 
-    use_non_recursive_wrapping: bool = False
-    backward_prefetch = BackwardPrefetch.BACKWARD_PRE
-
 
 def get_policy_base(use_nonrecursive, bucket_size, blocks):
     cfg = base_config()
@@ -98,8 +92,8 @@ def get_policy_base(use_nonrecursive, bucket_size, blocks):
         # The ParamExecOrderPolicy that is in development
         from torch.distributed.fsdp.wrap import (
             always_wrap_policy,
-            ParamExecOrderPolicy,
             HandleInitMode,
+            ParamExecOrderPolicy,
         )
 
         return ParamExecOrderPolicy(

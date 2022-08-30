@@ -14,8 +14,8 @@ from .base_config import base_config, fsdp_checkpointing_base, get_policy_base
 class train_config(base_config):
 
     # model
-    # model_name = "facebook/regnet-y-040" # 20M
     model_name = "10B"
+    # model_name = "3B"
     # 3B
     # 7B
     # 10B

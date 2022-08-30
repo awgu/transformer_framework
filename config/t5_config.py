@@ -22,7 +22,8 @@ from .base_config import base_config, fsdp_checkpointing_base, get_policy_base
 class train_config(base_config):
 
     # model
-    model_name = "t5-11b"
+    # model_name = "t5-11b"
+    model_name = "google/t5-v1_1-small"
     # available models
     # t5-small / base / large  - 1.0 pretrained
     # or

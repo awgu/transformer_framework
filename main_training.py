@@ -2,10 +2,14 @@ import argparse
 import os
 import time
 
-
 import colorama
+
+import environment
+
+import model_checkpointing
 import torch
 
+import torch.distributed as dist
 
 from colorama import Fore
 
@@ -14,12 +18,6 @@ from torch.distributed.fsdp import (
     MixedPrecision,
     StateDictType,
 )
-
-import model_checkpointing
-
-import torch.distributed as dist
-
-import environment
 
 bf16_ready = environment.verify_bfloat_support
 
@@ -161,17 +159,18 @@ def fsdp_main(wrap_policy, batch_size_training):
 
         elif cfg.checkpoint_type == StateDictType.LOCAL_STATE_DICT:
             model_checkpointing.load_distributed_model_checkpoint(model, rank, cfg)
-        
-        
-
-    
 
     prefetch_policy = cfg.backward_prefetch
-    from torch.distributed.fsdp.wrap import ParamExecOrderPolicy
-    if isinstance(wrap_policy, ParamExecOrderPolicy):
-        prefetch_policy = None
+    try:
+        from torch.distributed.fsdp.wrap import ParamExecOrderPolicy
+
+        if isinstance(wrap_policy, ParamExecOrderPolicy):
+            prefetch_policy = None
+    except ImportError:
+        ...
     if rank == 0:
         print(f"backward prefetch set to {prefetch_policy}")
+        print(f"limit all-gathers set to {cfg.limit_all_gathers}")
         print(f"sharding set to {cfg.sharding_strategy}")
         print(f"--> Batch Size = {batch_size_training}")
 
@@ -191,11 +190,14 @@ def fsdp_main(wrap_policy, batch_size_training):
         sharding_strategy=cfg.sharding_strategy,
         device_id=torch.cuda.current_device(),
         forward_prefetch=cfg.forward_prefetch,
-        limit_all_gathers=True,
+        limit_all_gathers=cfg.limit_all_gathers,
     )
 
-    if cfg.load_model_checkpoint and cfg.checkpoint_type == StateDictType.SHARDED_STATE_DICT:
-            model_checkpointing.load_model_sharded(model, rank, cfg)
+    if (
+        cfg.load_model_checkpoint
+        and cfg.checkpoint_type == StateDictType.SHARDED_STATE_DICT
+    ):
+        model_checkpointing.load_model_sharded(model, rank, cfg)
 
     if cfg.fsdp_activation_checkpointing:
         config.fsdp_checkpointing(model)
@@ -306,8 +308,8 @@ def fsdp_main(wrap_policy, batch_size_training):
             schedule=torch.profiler.schedule(wait=1, warmup=2, active=3, repeat=1),
             on_trace_ready=torch.profiler.tensorboard_trace_handler(cfg.profile_folder),
             profile_memory=True,
-            with_stack=False,
-            record_shapes=True,
+            with_stack=False,  # `True` causes seg fault with EFA
+            record_shapes=False,  # `True` causes seg fault with `export_chrome_trace()`
         ) as torch_profiler:
             config.train(
                 model,
@@ -351,8 +353,6 @@ def fsdp_main(wrap_policy, batch_size_training):
 
             elif cfg.checkpoint_type == StateDictType.SHARDED_STATE_DICT:
                 model_checkpointing.save_model_sharded(model, rank, cfg)
-
-
 
         if cfg.save_optimizer:
             model_checkpointing.save_optimizer_checkpoint(
