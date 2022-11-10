@@ -70,7 +70,7 @@ def apply_fsdp_checkpointing(model, blocks):
         checkpoint_impl=CheckpointImpl.NO_REENTRANT,
     )
     check_fn = lambda submodule: isinstance(submodule, blocks)
-    apply_activation_checkpointing_wrapper(
+    apply_activation_checkpointing(
         model, checkpoint_wrapper_fn=non_reentrant_wrapper, check_fn=check_fn
     )
 

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     checkpoint_wrapper,
     CheckpointImpl,
-    apply_activation_checkpointing_wrapper,
+    apply_activation_checkpointing,
 )
 from torch.distributed.fsdp import (
     FullyShardedDataParallel as FSDP,
@@ -55,7 +55,7 @@ def fsdp_apply_checkpointing(model, blocks):
     
     check_fn = lambda submodule: isinstance(submodule, blocks)
     
-    apply_activation_checkpointing_wrapper(
+    apply_activation_checkpointing(
         model, checkpoint_wrapper_fn=non_reentrant_wrapper, check_fn=check_fn
     )
 

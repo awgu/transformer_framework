@@ -41,5 +41,5 @@ export NCCL_SOCKET_IFNAME="eth0,en,eth,em,bond"
 # dcgmi profile --pause
 # srun torchrun --nnodes 2 --nproc_per_node 8 --rdzv_id 101 --rdzv_backend c10d --rdzv_endpoint "$head_node_ip:29500" ./main_training.py --model deepvit --batch-size 105 --use-nonrecursive --bucket-size 900000000
 
-srun torchrun --nnodes 1 --nproc_per_node 8 --rdzv_id 101 --rdzv_backend c10d --rdzv_endpoint "$head_node_ip:29500" ./main_training.py --model regnet --batch-size 32
+srun torchrun --nnodes 1 --nproc_per_node 8 --rdzv_id 101 --rdzv_backend c10d --rdzv_endpoint "$head_node_ip:29500" ./main_training.py --model t5 --batch-size 8
 # dcgmi profile --resume

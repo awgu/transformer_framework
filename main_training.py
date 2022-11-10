@@ -172,6 +172,7 @@ def fsdp_main(wrap_policy, batch_size_training):
         print(f"backward prefetch set to {prefetch_policy}")
         print(f"limit all-gathers set to {cfg.limit_all_gathers}")
         print(f"sharding set to {cfg.sharding_strategy}")
+        print(f"use orig params set to {cfg.use_orig_params}")
         print(f"--> Batch Size = {batch_size_training}")
 
     # model weights to BF16?
@@ -191,6 +192,7 @@ def fsdp_main(wrap_policy, batch_size_training):
         device_id=torch.cuda.current_device(),
         forward_prefetch=cfg.forward_prefetch,
         limit_all_gathers=cfg.limit_all_gathers,
+        use_orig_params=cfg.use_orig_params,
     )
 
     if (
@@ -208,6 +210,7 @@ def fsdp_main(wrap_policy, batch_size_training):
     if rank == 0 and cfg.print_sharding_plan:
         print(model)
 
+    dist.set_debug_level(dist.DebugLevel.DETAIL)
     # postload checkpoint if desired
     if (
         cfg.load_model_checkpoint
@@ -305,7 +308,7 @@ def fsdp_main(wrap_policy, batch_size_training):
                 torch.profiler.ProfilerActivity.CPU,
                 torch.profiler.ProfilerActivity.CUDA,
             ],
-            schedule=torch.profiler.schedule(wait=1, warmup=2, active=3, repeat=1),
+            schedule=torch.profiler.schedule(wait=1, warmup=2, active=1),
             on_trace_ready=torch.profiler.tensorboard_trace_handler(cfg.profile_folder),
             profile_memory=True,
             with_stack=False,  # `True` causes seg fault with EFA
@@ -333,6 +336,7 @@ def fsdp_main(wrap_policy, batch_size_training):
                 tracking_duration,
                 cfg.total_steps_to_run,
             )
+
             if cfg.total_steps_to_run is not None:
                 break
 

@@ -1,12 +1,14 @@
 import time
-import torch
 from dataclasses import dataclass
 from typing import Tuple
 
-from transformers import RegNetForImageClassification, RegNetConfig
-from transformers.models.regnet.modeling_regnet import RegNetStage, RegNetYLayer
-from torch.utils.data import Dataset
+import torch
 from torch.distributed.fsdp import StateDictType
+from torch.utils.data import Dataset
+
+from transformers import RegNetConfig, RegNetForImageClassification
+from transformers.models.regnet.modeling_regnet import RegNetStage, RegNetYLayer
+
 from .base_config import base_config, fsdp_checkpointing_base, get_policy_base
 
 
@@ -14,8 +16,8 @@ from .base_config import base_config, fsdp_checkpointing_base, get_policy_base
 class train_config(base_config):
 
     # model
-    model_name = "10B"
-    # model_name = "3B"
+    # model_name = "10B"
+    model_name = "3B"
     # 3B
     # 7B
     # 10B
@@ -33,7 +35,7 @@ class train_config(base_config):
     # optimizers load and save
     save_optimizer: bool = False
     load_optimizer: bool = False
-    
+
     optimizer_checkpoint_file: str = "Adam-regnet--1.pt"
 
     checkpoint_model_filename: str = "regnet--1.pt"
@@ -100,7 +102,16 @@ def fsdp_checkpointing(model):
     return fsdp_checkpointing_base(model, RegNetYLayer)
 
 
-def train(model, data_loader, torch_profiler, optimizer, memmax, local_rank, tracking_duration, total_steps_to_run):
+def train(
+    model,
+    data_loader,
+    torch_profiler,
+    optimizer,
+    memmax,
+    local_rank,
+    tracking_duration,
+    total_steps_to_run,
+):
     cfg = train_config()
     loss_function = torch.nn.CrossEntropyLoss()
     t0 = time.perf_counter()

@@ -16,14 +16,17 @@ from transformers import (
 from transformers.models.t5.modeling_t5 import T5Block
 
 from .base_config import base_config, fsdp_checkpointing_base, get_policy_base
+import sys
+sys.path.append("..")
+from memory_debugging_tensor import MemoryProfileDispatchMode, clear_state, record_fn, add_marker
 
 
 @dataclass
 class train_config(base_config):
 
     # model
-    # model_name = "t5-11b"
     model_name = "google/t5-v1_1-small"
+    # model_name = "google/t5-v1_1-large"
     # available models
     # t5-small / base / large  - 1.0 pretrained
     # or
@@ -41,7 +44,7 @@ class train_config(base_config):
     # checkpoint models
     save_model_checkpoint: bool = True
     load_model_checkpoint: bool = True
-    checkpoint_type = StateDictType.SHARDED_STATE_DICT
+    checkpoint_type = StateDictType.FULL_STATE_DICT
     dist_checkpoint_root_folder = "distributed_checkpoints"
     dist_checkpoint_folder = "T5_local_checkpoint"
     model_save_name = "t5-"

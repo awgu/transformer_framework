@@ -20,7 +20,7 @@ class base_config:
     seed: int = 2022
     verbose: bool = True  # how much info to show...
     # how many mini batches to time with
-    total_steps_to_run: int = 3
+    total_steps_to_run: int = 12
 
     # stats
     print_memory_summary: bool = False
@@ -32,7 +32,8 @@ class base_config:
 
     # policies
     use_mixed_precision: bool = True
-    mp_policy = policies.bf16_policy
+    # mp_policy = policies.bf16_policy
+    mp_policy = policies.fp16_policy
 
     use_low_precision_gradient_policy: bool = False
     # this is only for fp32 scenario...
@@ -52,11 +53,14 @@ class base_config:
     sharding_strategy: ShardingStrategy = ShardingStrategy.FULL_SHARD
     print_sharding_plan: bool = True
 
-    run_profiler: bool = False
+    run_profiler: bool = True
     profile_folder: str = "fsdp/profile_tracing"
 
     backward_prefetch = BackwardPrefetch.BACKWARD_PRE
+    # backward_prefetch = None
+    forward_prefetch = False
     limit_all_gathers = True
+    use_orig_params = True
 
     # log
     log_every: int = 1
@@ -65,7 +69,7 @@ class base_config:
     num_workers_dataloader: int = 2
 
     # training
-    batch_size_training: int = 16
+    batch_size_training: int = 48
 
     # activation checkpointing
     fsdp_activation_checkpointing: bool = True
@@ -73,6 +77,7 @@ class base_config:
     # validation
     run_validation: bool = False
     val_batch_size = 18
+    val_batch_size = 4
 
     # logging
     track_memory = True
@@ -113,7 +118,6 @@ def fsdp_checkpointing_base(model, blocks):
         checkpoint_impl=CheckpointImpl.NO_REENTRANT,
     )
     check_fn = lambda submodule: isinstance(submodule, blocks)
-
     apply_activation_checkpointing(
         model, checkpoint_wrapper_fn=non_reentrant_wrapper, check_fn=check_fn
     )
