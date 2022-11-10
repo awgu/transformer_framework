@@ -12,6 +12,7 @@ import torch
 import torch.distributed as dist
 
 from colorama import Fore
+from torch.distributed._composable import fully_shard
 
 from torch.distributed.fsdp import (
     FullyShardedDataParallel as FSDP,
@@ -183,16 +184,17 @@ def fsdp_main(wrap_policy, batch_size_training):
             print(f"--> Model converted to BF16.\nRunning in ** PURE ** BFloat mode")
 
     # ----- main FSDP init -----------
+    # model = fully_shard(
+    #     model,
+    #     policy=wrap_policy,
+    #     mixed_precision=mp_policy,
+    #     device_id=torch.cuda.current_device(),
+    # )
     model = FSDP(
         model,
         auto_wrap_policy=wrap_policy,
         mixed_precision=mp_policy,
-        backward_prefetch=prefetch_policy,
-        sharding_strategy=cfg.sharding_strategy,
         device_id=torch.cuda.current_device(),
-        forward_prefetch=cfg.forward_prefetch,
-        limit_all_gathers=cfg.limit_all_gathers,
-        use_orig_params=cfg.use_orig_params,
     )
 
     if (

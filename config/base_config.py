@@ -10,7 +10,7 @@ from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     CheckpointImpl,
 )
 from torch.distributed.fsdp import BackwardPrefetch, ShardingStrategy
-from torch.distributed.fsdp.wrap import transformer_auto_wrap_policy
+from torch.distributed.fsdp.wrap import ModuleWrapPolicy, transformer_auto_wrap_policy
 
 
 @dataclass
@@ -72,7 +72,7 @@ class base_config:
     batch_size_training: int = 48
 
     # activation checkpointing
-    fsdp_activation_checkpointing: bool = True
+    fsdp_activation_checkpointing: bool = False
 
     # validation
     run_validation: bool = False
@@ -89,10 +89,7 @@ class base_config:
 def get_policy_base(use_nonrecursive, bucket_size, blocks):
     cfg = base_config()
     if not use_nonrecursive:
-        return functools.partial(
-            transformer_auto_wrap_policy,
-            transformer_layer_cls=blocks,
-        )
+        return ModuleWrapPolicy(blocks)
     else:
         # The ParamExecOrderPolicy that is in development
         from torch.distributed.fsdp.wrap import (

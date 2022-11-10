@@ -1,3 +1,4 @@
+import sys
 import time
 from dataclasses import dataclass
 
@@ -16,9 +17,14 @@ from transformers import (
 from transformers.models.t5.modeling_t5 import T5Block
 
 from .base_config import base_config, fsdp_checkpointing_base, get_policy_base
-import sys
+
 sys.path.append("..")
-from memory_debugging_tensor import MemoryProfileDispatchMode, clear_state, record_fn, add_marker
+from memory_debugging_tensor import (
+    add_marker,
+    clear_state,
+    MemoryProfileDispatchMode,
+    record_fn,
+)
 
 
 @dataclass
@@ -42,8 +48,8 @@ class train_config(base_config):
     use_real_data = True
 
     # checkpoint models
-    save_model_checkpoint: bool = True
-    load_model_checkpoint: bool = True
+    save_model_checkpoint: bool = False
+    load_model_checkpoint: bool = False
     checkpoint_type = StateDictType.FULL_STATE_DICT
     dist_checkpoint_root_folder = "distributed_checkpoints"
     dist_checkpoint_folder = "T5_local_checkpoint"
@@ -237,6 +243,10 @@ def train(
     tracking_duration,
     total_steps_to_run,
 ):
+    from torch.distributed._composable import fully_shard
+    from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+    from torch.distributed.fsdp._runtime_utils import _root_pre_forward
+
     cfg = train_config()
     model.train()
     if local_rank == 0:
@@ -250,11 +260,21 @@ def train(
             batch[key] = batch[key].to(local_rank)
         if optimizer:
             optimizer.zero_grad()
-        output = model(
-            input_ids=batch["source_ids"],
-            attention_mask=batch["source_mask"],
-            labels=batch["target_ids"],
-        )
+        if isinstance(model, FSDP):
+            output = model(
+                input_ids=batch["source_ids"],
+                attention_mask=batch["source_mask"],
+                labels=batch["target_ids"],
+            )
+        else:
+            args, kwargs = _root_pre_forward(
+                fully_shard.state(model),
+                model,
+                input_ids=batch["source_ids"],
+                attention_mask=batch["source_mask"],
+                labels=batch["target_ids"],
+            )
+            output = model(*args, **kwargs)
         loss = output["loss"]
         loss.backward()
         if optimizer:
